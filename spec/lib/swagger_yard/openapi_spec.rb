@@ -12,10 +12,16 @@ RSpec.describe SwaggerYard::OpenAPI do
     its([0]) { is_expected.to include('url' => 'http://localhost:3000/api') }
   end
 
+  context "#/security" do
+    subject { openapi["security"] }
+
+    it { is_expected.to eq([{ "header_x_application_api_key" => [] }]) }
+  end
+
   context "#/paths" do
     subject { openapi["paths"] }
 
-    its(:size) { is_expected.to eq(3) }
+    its(:size) { is_expected.to eq(5) }
   end
 
   context "#/paths//pets/{id}" do
@@ -23,7 +29,7 @@ RSpec.describe SwaggerYard::OpenAPI do
 
     it { is_expected.to_not be_empty }
 
-    its(:keys) { are_expected.to eq(["get"]) }
+    its(:keys) { are_expected.to eq(["get", "put", "delete"]) }
 
     its(["get", "summary"]) { is_expected.to eq("return a Pet") }
 
@@ -36,6 +42,28 @@ RSpec.describe SwaggerYard::OpenAPI do
     its(["get", "parameters"]) { are_expected.to include(include("name" => "id", "schema" => include("example" => "1"))) }
 
     its(["get", "security"]) { is_expected.to eq([{'header_x_application_api_key' => []}])}
+
+    its(["put", "summary"]) { is_expected.to eq("update a Pet") }
+
+    its(["put", "operationId"]) { is_expected.to eq("updatePet") }
+
+    its(["delete", "summary"]) { is_expected.to eq("delete a Pet") }
+
+    its(["delete", "operationId"]) { is_expected.to eq("Pet-destroy") }
+
+    its(["delete", "x-internal"]) { is_expected.to eq("true") }
+
+    context "when ignoring internal paths" do
+      before { SwaggerYard.config.ignore_internal = true }
+
+      its(:keys) { are_expected.to eq(["get", "put"]) }
+    end
+
+    context "when not defaulting summary to description" do
+      before { SwaggerYard.config.default_summary_to_description = false }
+
+      its(["put", "summary"]) { is_expected.to be_nil }
+    end
   end
 
   context "#/paths//pets" do
@@ -87,10 +115,17 @@ RSpec.describe SwaggerYard::OpenAPI do
 
     its(["AnimalThing", "properties"]) { are_expected.to include("id", "type", "possessions") }
 
-    its(["Pet", "properties"]) { are_expected.to include("id", "names", "age", "relatives") }
+    its(["Pet", "properties"]) { are_expected.to include("id", "names", "age", "relatives", "secret_name") }
     its(["Pet", "properties", "names", "example"]) { is_expected.to eq(["Bob", "Bobo", "Bobby"]) }
     its(["Pet", "properties", "age", "example"]) { is_expected.to eq(8) }
     its(["Pet", "properties", "birthday", "example"]) { is_expected.to eq("2018/10/31T00:00:00.000Z") }
+    its(["Pet", "properties", "secret_name", "x-internal"]) { is_expected.to eq("true") }
+
+    context "when ignoring internal properties" do
+      before { SwaggerYard.config.ignore_internal = true }
+
+      its(["Pet", "properties"]) { are_expected.to_not include("secret_name") }
+    end
 
     its(["Possession", "properties"]) { are_expected.to include("name", "value") }
 
@@ -119,6 +154,14 @@ RSpec.describe SwaggerYard::OpenAPI do
     subject { openapi["tags"] }
 
     it { is_expected.to include(a_tag_named("Pet"), a_tag_named("Transport"))}
+    its(:size) { is_expected.to eq(2) }
+  end
+
+  context "#/tag_groups" do
+    subject { openapi["x-tagGroups"][0] }
+
+    its([:name]) { is_expected.to eq("Test Tag Group")}
+    its([:tags]) { is_expected.to match_array(["Pet", "Transport"])}
   end
 
   context "#/components/securitySchemes" do
@@ -133,7 +176,8 @@ RSpec.describe SwaggerYard::OpenAPI do
   context 'securityDefinitions' do
     let(:auth) { SwaggerYard::Authorization.from_yard_object(yard_tag(content)) }
     let(:spec) { stub(path_objects: SwaggerYard::Paths.new([]), tag_objects: [],
-                      security_objects: { auth.id => auth }, model_objects: {}) }
+                      security_objects: { auth.id => auth }, model_objects: {},
+                      tag_groups: []) }
     let (:security_schemes) { {'key' => {'type' => 'basic', 'description' => 'Basic authentication'} } }
     let(:content) { '@authorization [api_key] header X-My-Header' }
 

@@ -8,9 +8,10 @@ module SwaggerYard
     attr_accessor :description, :ruby_method
     attr_accessor :authorizations
     attr_writer :summary
+    attr_writer :operation_id
     attr_reader :path, :http_method
     attr_reader :parameters
-    attr_reader :path_item, :responses
+    attr_reader :path_item, :responses, :extensions
 
     # TODO: extract to operation builder?
     def self.from_yard_object(yard_object, path_item)
@@ -31,6 +32,10 @@ module SwaggerYard
             operation.add_response(tag)
           when "summary"
             operation.summary = tag.text
+          when "operation_id"
+            operation.operation_id = tag.text
+          when "extension"
+            operation.add_extension(tag)
           when "example"
             if tag.name && !tag.name.empty?
               operation.response(tag.name).example = tag.text
@@ -49,19 +54,21 @@ module SwaggerYard
     def initialize(path_item)
       @path_item      = path_item
       @summary        = nil
+      @operation_id  = nil
       @description    = ""
       @parameters     = []
       @default_response = nil
       @responses = []
+      @extensions = {}
       @authorizations = {}.merge(api_group.authorizations.to_h)
     end
 
     def summary
-      @summary || description.split("\n\n").first || ""
+      @summary || default_summary
     end
 
     def operation_id
-      "#{api_group.resource}-#{ruby_method}"
+      @operation_id || "#{api_group.resource}-#{ruby_method}"
     end
 
     def api_group
@@ -82,7 +89,7 @@ module SwaggerYard
     end
 
     def extended_attributes
-      {}.tap do |h|
+      @extensions.tap do |h|
         # Rails controller/action: if constantize/controller_path methods are
         # unavailable or constant is not defined, catch exception and skip these
         # attributes.
@@ -174,9 +181,34 @@ module SwaggerYard
       @parameters.sort_by! {|p| p.name}
     end
 
+    ##
+    # Example:
+    # @extension x-internal: true
+    def add_extension(tag)
+      key, value = tag.text.split(":", 2).map(&:strip)
+
+      unless key.start_with?("x-")
+        SwaggerYard.log.warn("extension '#{tag.text}' must being with 'x-'")
+      end
+
+      @extensions[key] = value
+    end
+
+    def internal?
+      extensions["x-internal"] == 'true'
+    end
+
     private
     def parse_path_params(path)
       path.scan(/\{([^\}]+)\}/).flatten
+    end
+
+    def default_summary
+      if SwaggerYard.config.default_summary_to_description
+        description.split("\n\n").first || ""
+      else
+        ""
+      end
     end
   end
 end

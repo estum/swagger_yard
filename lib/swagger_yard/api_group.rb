@@ -24,7 +24,7 @@ module SwaggerYard
 
   class ApiGroup
     attr_accessor :description, :resource
-    attr_reader :path_items, :authorizations, :class_name
+    attr_reader :path_items, :authorizations, :class_name, :tag_group
 
     def self.from_yard_object(yard_object)
       new.add_yard_object(yard_object)
@@ -73,6 +73,10 @@ module SwaggerYard
         @resource = tag.text
       end
 
+      if tag = yard_object.tags.detect {|t| t.tag_name == "tag_group"}
+        @tag_group = tag.text
+      end
+
       # we only have api_key auth, the value for now is always empty array
       @authorizations = Hash[yard_object.tags.
                              select {|t| t.tag_name == "authorize_with"}.
@@ -82,8 +86,9 @@ module SwaggerYard
 
     def add_path_item(yard_object)
       path = path_from_yard_object(yard_object)
+      operation = Operation.from_yard_object(yard_object, self)
 
-      return if path.nil?
+      return if path.nil? || (operation.internal? && SwaggerYard.config.ignore_internal)
 
       path_item = (path_items[path] ||= PathItem.new(self))
       path_item.add_operation(yard_object)

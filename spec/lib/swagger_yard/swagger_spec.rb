@@ -22,7 +22,7 @@ RSpec.describe SwaggerYard::Swagger do
   context "#/paths" do
     subject { swagger["paths"] }
 
-    its(:size) { is_expected.to eq(3) }
+    its(:size) { is_expected.to eq(5) }
   end
 
   context "#/paths//pets/{id}" do
@@ -30,7 +30,7 @@ RSpec.describe SwaggerYard::Swagger do
 
     it { is_expected.to_not be_empty }
 
-    its(:keys) { are_expected.to eq(["get"]) }
+    its(:keys) { are_expected.to eq(["get", "put", "delete"]) }
 
     its(["get", "summary"]) { is_expected.to eq("return a Pet") }
 
@@ -43,6 +43,28 @@ RSpec.describe SwaggerYard::Swagger do
     its(["get", "parameters"]) { are_expected.to include(a_parameter_named("id")) }
 
     its(["get", "security"]) { is_expected.to eq([{'header_x_application_api_key' => []}])}
+
+    its(["put", "summary"]) { is_expected.to eq("update a Pet") }
+
+    its(["put", "operationId"]) { is_expected.to eq("updatePet") }
+
+    its(["delete", "summary"]) { is_expected.to eq("delete a Pet") }
+
+    its(["delete", "operationId"]) { is_expected.to eq("Pet-destroy") }
+
+    its(["delete", "x-internal"]) { is_expected.to eq("true") }
+
+    context "when ignoring internal paths" do
+      before { SwaggerYard.config.ignore_internal = true }
+
+      its(:keys) { are_expected.to eq(["get", "put"]) }
+    end
+
+    context "when not defaulting summary to description" do
+      before { SwaggerYard.config.default_summary_to_description = false }
+
+      its(["put", "summary"]) { is_expected.to be_nil }
+    end
   end
 
   context "#/paths//pets" do
@@ -124,6 +146,7 @@ RSpec.describe SwaggerYard::Swagger do
     subject { swagger["tags"] }
 
     it { is_expected.to include(a_tag_named("Pet"), a_tag_named("Transport"))}
+    its(:size) { is_expected.to eq(2) }
   end
 
   context "#/securityDefinitions" do

@@ -105,10 +105,12 @@ module SwaggerYard
       ::YARD::Tags::Library.define_tag("Api resource", :resource)
       ::YARD::Tags::Library.define_tag("Api path", :path, :with_types)
       ::YARD::Tags::Library.define_tag("Parameter", :parameter, :with_types_name_and_default)
+      ::YARD::Tags::Library.define_tag("Extension", :extension)
       ::YARD::Tags::Library.define_tag("Response type", :response_type, :with_types)
       ::YARD::Tags::Library.define_tag("Error response message", :error_message, :with_types_and_name)
       ::YARD::Tags::Library.define_tag("Response", :response, :with_types_and_name)
       ::YARD::Tags::Library.define_tag("Api Summary", :summary)
+      ::YARD::Tags::Library.define_tag("Operation id", :operation_id)
       ::YARD::Tags::Library.define_tag("Model resource", :model)
       ::YARD::Tags::Library.define_tag("Model superclass", :inherits)
       ::YARD::Tags::Library.define_tag("Model property", :property, :with_types_name_and_default)
@@ -116,9 +118,11 @@ module SwaggerYard
       ::YARD::Tags::Library.define_tag("Additional properties", :additional_properties)
       ::YARD::Tags::Library.define_tag("Authorization", :authorization, :with_types_and_name)
       ::YARD::Tags::Library.define_tag("Authorization Use", :authorize_with)
+      ::YARD::Tags::Library.define_tag("Tag group", :tag_group)
       # @example is a core YARD tag, let's use it
       # ::YARD::Tags::Library.define_tag("Example", :example, :with_title_and_text)
       ::YARD::Tags::Library.define_directive(:model, :with_title_and_text, Directives::ParamClassDirective)
+      ::YARD::Tags::Library.define_directive(:path, :with_types, Directives::PathDirective)
     end
   end
 end
